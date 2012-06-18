@@ -247,16 +247,19 @@ endf "}}}
 
 func! s:SetSubWin() "{{{
 	exe s:winNr['sub'] . "wincmd w"
-	ino <silent><NL>	<ESC>:cal <SID>RegTask()<CR>:<BS>
-	ino <silent><C-r>	<ESC>:cal <SID>RegTask()<CR>:<BS>
-	nno <silent><CR>	<ESC>:cal <SID>RegTask()<CR>:<BS>
-	ino <silent><C-q>	<ESC>:wincmd k<CR>:<BS>
-	ino <silent><C-n>	<C-o>:cal <SID>ScheIncTime("inc")<CR>:<BS>
-	ino <silent><C-p>	<C-o>:cal <SID>ScheIncTime("dec")<CR>:<BS>
-	ino <silent><C-u>	<ESC>0f>2ld$a
-	ino <silent><C-u>	<ESC>0f>2ld$a
-	ino <silent><C-a>	<ESC>0f>la
-	ino <silent><C-e>	<C-o>:cal <SID>ToggleTimeFocus()<CR>:<BS>
+	ino <silent><buffer>	<NL>	<ESC>:cal <SID>RegTask()<CR>:<BS>
+	ino <silent><buffer>	<C-r>	<ESC>:cal <SID>RegTask()<CR>:<BS>
+	ino <silent><buffer>	<C-q>	<ESC>:wincmd k<CR>:<BS>
+	ino <silent><buffer>	<C-w>	<ESC>:wincmd k<CR>:<BS>
+	ino <silent><buffer>	<C-n>	<C-o>:cal <SID>ScheIncTime("inc")<CR>:<BS>
+	ino <silent><buffer>	<C-p>	<C-o>:cal <SID>ScheIncTime("dec")<CR>:<BS>
+	ino <silent><buffer>	<C-u>	<ESC>0f>2ld$a
+	ino <silent><buffer>	<C-u>	<ESC>0f>2ld$a
+	ino <silent><buffer>	<C-a>	<ESC>0f>la
+	ino <silent><buffer>	<C-e>	<C-o>:cal <SID>ToggleTimeFocus()<CR>:<BS>
+	nno <silent><buffer>	<CR>	:cal <SID>RegTask()<CR>:<BS>
+	nno <silent><buffer>	<C-r>	:cal <SID>RegTask()<CR>:<BS>
+	nno <silent><buffer>	<C-w>	:wincmd k<CR>:<BS>
 	syn match ViskeInputTime /[0-9]\+:[0-9]\+/
 	syn match ViskeInputDelim /\s>\s/
 	syn match ViskeInputPlace /@/
@@ -684,6 +687,11 @@ func! s:MakeTask(todo) range "{{{
 		norm! v
 		return
 	endif
+	if startCol > endCol
+		let tmp = endCol
+		let endCol = startCol
+		let startCol = tmp
+	endif
 	let s:winl = winline() - 2
 	let s:day = s:barLookup[line(".")]
 	exe s:winNr['sub'] . "wincmd w"
@@ -707,8 +715,8 @@ func! s:RegTask() "{{{
 	let stime = s:Str2Time(rstime)
 	let etime = s:Str2Time(retime)
 	let task  =  substitute(plan, 
-				\ '^\s\d\{1,2}:\d\d\s.*-\s*\d\{1,2}:\d\d\s.*>\s\(\S.*\)$', '\1', '')
-	if len(plan) == len(task)
+				\ '^\s\d\{1,2}:\d\d\s.*-\s*\d\{1,2}:\d\d\s.*>\s*\(\S.*\)$', '\1', '')
+	if len(plan) == len(task) || stime >= etime
 		call setline(2, "!Format is Invalid!")
 		wincmd k
 		retu
@@ -774,7 +782,7 @@ func! s:TaskChange() "{{{
 	if s:IsDesc(s:YankBuf) > 0
 		let cnt = 1
 		for i in split(s:YankBuf[s:ID_Desc], '%%')
-			cal append(1, i)
+			cal append(cnt, i)
 			let cnt += 1
 		endfor
 	endif
