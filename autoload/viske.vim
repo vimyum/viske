@@ -379,7 +379,7 @@ func! s:SetMainWin(day, mon, year) "{{{
 	nno <buffer> ) :cal <SID>ModifyTask(")")<CR>:<BS>
 	nno <buffer> ( :cal <SID>ModifyTask("(")<CR>:<BS>
 
-	nno <silent> O :cal <SID>FocusCal()<CR>:<BS>
+	nno <silent> <C-o> :cal <SID>FocusCal()<CR>:<BS>
 
 	"test command
 	nno <buffer> T					:call <SID>ScheTest()<CR>
@@ -715,7 +715,7 @@ func! s:RegTask() "{{{
 	let stime = s:Str2Time(rstime)
 	let etime = s:Str2Time(retime)
 	let task  =  substitute(plan, 
-				\ '^\s\d\{1,2}:\d\d\s.*-\s*\d\{1,2}:\d\d\s.*>\s*\(\S.*\)$', '\1', '')
+				\ '^\s\d\{1,2}:\d\d\s.*-\s*\d\{1,2}:\d\d\s.*>\s\+\(\S.*\)$', '\1', '')
 	if len(plan) == len(task) || stime >= etime
 		call setline(2, "!Format is Invalid!")
 		wincmd k
@@ -780,7 +780,8 @@ func! s:TaskChange() "{{{
 				\ tmark . s:YankBuf[s:ID_Msg])
 
 	if s:IsDesc(s:YankBuf) > 0
-		let cnt = 1
+		cal append(1, "")
+		let cnt = 2
 		for i in split(s:YankBuf[s:ID_Desc], '%%')
 			cal append(cnt, i)
 			let cnt += 1
