@@ -27,11 +27,14 @@
 let s:cpo_save = &cpo
 set cpo&vim
 
+scriptencoding utf-8
+set encoding=utf-8
+
 " Set Default Values {{{
 let s:subWinHeight = get(g:, "ViskeSubWinHeight",  7)
 let s:todoWinWidth = get(g:, "ViskeTodoWinWidth", 40)
 let s:calWinWidth  = get(g:, "ViskeCalWinWidth" , 25)
-let s:scheduleDir  = get(g:, "ViskeDir", $HOME ."/.Schedule/")
+let s:scheduleDir  = get(g:, "ViskeDir", $HOME ."/Schedule/")
 let s:cutDownMsg   = get(g:, "ViskeCutDownMsg", 0)
 let s:dispMode     = get(g:, "ViskeDispMode",   1)
 let s:startTime    = get(g:, "ViskeStartTime",  8)
@@ -235,7 +238,7 @@ func! s:SetHighLight() "{{{
 	cal videm#lib#setColor("ViskeTask", "ViskeTask_A", cList)
 	cal videm#lib#setColor("ViskeTask", "ViskeTask_B", cList)
 
-	let s:TimeLineSelectedColor = videm#lib#getColor("CursorLine", "cterfbg=0")[1]
+	let s:TimeLineSelectedColor = videm#lib#getColor("ViskeTimeLineSelected", "cterfbg=0")[1]
 	let s:TaskSelectedColor = videm#lib#getColor("ViskeTaskSelected", 
 				\ "ctermfg=7 guifg=#EEEEEE", 'f')[1] .
 				\ " ctermbg=NONE guibg=NONE term=underline gui=underline"
@@ -377,7 +380,8 @@ func! s:SetMainWin(day, mon, year) "{{{
 
 	"test command
 	nno <buffer> T					:call <SID>ScheTest()<CR>
-	nno <buffer> a					:call <SID>Refresh()<CR>
+	nno <buffer> r					:call <SID>Refresh()<CR>
+	nno <buffer> s					:call <SID>SaveTasks()<CR>
 	auto VimResized <buffer> :cal <SID>Refresh()
 
 	cal s:SetWinWidth()
@@ -386,6 +390,12 @@ func! s:SetMainWin(day, mon, year) "{{{
 endf "}}}
 
 func! s:Refresh() "{{{
+	exe s:winNr['sub'] . "wincmd w"
+	exe "resize ". s:subWinHeight
+	exe s:winNr['cal'] . "wincmd w"
+	exe "vert resize ". s:calWinWidth
+	cal videm#cal#reload()
+	exe s:winNr['main'] . "wincmd w"
 	cal s:SetWinWidth()
 	silent cal s:Show(s:day, s:mon, s:year)
 endf "}}}
@@ -592,7 +602,7 @@ endf "}}}
 func! s:VMove(direction) "{{{
 	let scroll_up = 0
 	let ln = line('.')
-	if a:direction == "J"
+	if a:direction ==# "J"
 		let ln += 1
 		while has_key(s:taskLookup, ln) == 0 && has_key(s:barLookup, ln) == 0
 			let ln += 1
@@ -601,7 +611,7 @@ func! s:VMove(direction) "{{{
 				retu
 			endif
 		endwhile
-	elseif a:direction == "K"
+	elseif a:direction ==# "K"
 		let ln -= 1
 		while has_key(s:taskLookup, ln) == 0 && has_key(s:barLookup, ln) == 0
 			let ln -= 1
@@ -610,7 +620,7 @@ func! s:VMove(direction) "{{{
 				retu
 			endif
 		endwhile
-	elseif a:direction == "j"
+	elseif a:direction ==# "j"
 		let ln += 1
 		while has_key(s:barLookup, ln) == 0
 			let ln += 1
@@ -619,7 +629,7 @@ func! s:VMove(direction) "{{{
 				retu
 			endif
 		endwhile
-	elseif a:direction == "k"
+	elseif a:direction ==# "k"
 		let ln -= 1
 		let scroll_up = 1
 		while has_key(s:barLookup, ln) == 0
@@ -910,13 +920,13 @@ endf "}}}
 
 func! s:HMove(direction) range "{{{
 	let ncol = col('.')
-	if a:direction == "l"
+	if a:direction ==# "l"
 		let ncol += s:minSlot
-	elseif a:direction == "h"
+	elseif a:direction ==# "h"
 		let ncol -= s:minSlot
-	elseif a:direction == "L"
+	elseif a:direction ==# "L"
 		let ncol += s:timeSlot
-	elseif a:direction == "H"
+	elseif a:direction ==# "H"
 		let ncol -= s:timeSlot
 	endif
 	cal cursor(0, (ncol/s:minSlot)*s:minSlot + 2)
@@ -1124,7 +1134,7 @@ func! s:FocusCal() "{{{
 endf "}}}
 
 func! viske#selectCal(day, mon, year) "{{{
-	call s:SaveTasks()
+	cal s:SaveTasks()
 	let s:day = a:day
 	let s:mon = a:mon
 	let s:year = a:year
@@ -1185,10 +1195,12 @@ func! viske#RtimeToDtime(str)
 endf
 
 func! s:ScheTest()
-	echo s:taskArray
+	"echo s:taskArray
+	echo s:TimeLineSelectedColor
 	cal getchar()
 endf
 
 let &cpo = s:cpo_save
 unlet s:cpo_save
 
+" vim: foldmethod=marker

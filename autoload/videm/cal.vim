@@ -27,6 +27,9 @@
 let s:cpo_save = &cpo
 set cpo&vim
 
+scriptencoding utf-8
+set encoding=utf-8
+
 let s:wdayTitlesJP = ["日","月","火","水","木","金","土"]
 let s:wdayTitlesCN = ["天","一","二","三","四","五","六"]
 let s:wdayTitlesEN = ["Su","Mo","Tu","We","Th","Fr","Sa"]
@@ -83,12 +86,11 @@ func videm#cal#display(...)
 	nno <silent><buffer> <C-p>	:silent cal <SID>PrevMon()<CR>
 	nno <silent><buffer> q		:qa!<CR>
     nno <silent><buffer> tt     :cal videm#cal#testFunc()<CR>
-	auto VimResized <buffer> :cal <SID>Reload()
 	cal s:SetHilight()
-	cal s:Reload()
+	cal videm#cal#reload()
 endf
 
-func s:Reload()
+func videm#cal#reload()
 	setl modifiable
 	exe "%delete"
 	cal s:BulidCal(s:year, s:mon)
@@ -234,7 +236,7 @@ function! s:NextMon()
         let s:mon   = 1
         let s:year += 1
     endif
-	cal s:Reload()
+	cal videm#cal#reload()
 endfunction
 
 func! s:PrevMon()
@@ -243,7 +245,7 @@ func! s:PrevMon()
         let s:mon   = 12
         let s:year -= 1
     endif
-	cal s:Reload()
+	cal videm#cal#reload()
 endf
 
 func videm#cal#setSelectFunc(fname)

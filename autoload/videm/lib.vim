@@ -113,6 +113,9 @@ func! videm#lib#getColor(name, defcolor, ...)
 	else
 		let msg = a:defcolor
 	endif
+	if matchstr(msg, 'clear') != ""
+		let msg = a:defcolor
+	endif
 	if a:0 > 0
 		let flg = a:1
 	else
