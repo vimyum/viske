@@ -716,7 +716,7 @@ func! s:RegTask() "{{{
 	let etime = s:Str2Time(retime)
 	let task  =  substitute(plan, 
 				\ '^\s\d\{1,2}:\d\d\s.*-\s*\d\{1,2}:\d\d\s.*>\s\+\(\S.*\)$', '\1', '')
-	if (len(plan) == len(task)) || (str2float(stime) >= str2float(etime))
+	if len(plan) == len(task) 
 		cal setline(2, "!Format is Invalid!")
 		wincmd k
 		retu
@@ -734,6 +734,12 @@ func! s:RegTask() "{{{
 	endif
 
 	if type != s:taskTypeTodoNum
+		if str2float(stime) >= str2float(etime)
+			cal setline(2, "!Time is Invalid!")
+			wincmd k
+			retu
+		endif
+
 		if str2float(stime) < s:startTime
 			let stime = s:startTime . ".0"
 		endif
