@@ -21,7 +21,7 @@
 "     TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 "     SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 " }}}
-" Version: 1.0
+" Version: 1.1
 "=============================================================================
 
 let s:cpo_save = &cpo
@@ -29,6 +29,10 @@ set cpo&vim
 
 scriptencoding utf-8
 set encoding=utf-8
+
+if !exists('s:is_enabled')
+	let s:is_enabled = 0
+endif
 
 " Set Default Values {{{
 let s:subWinHeight = get(g:, "ViskeSubWinHeight",  7)
@@ -62,6 +66,9 @@ let s:ID_RStart	= 7
 let s:ID_REnd	= 8
 let s:ID_ID		= 9
 let s:ID_Desc	= 10
+
+let g:viske#id = {"year":0, "mon":1, "day":2, "start":3, "end":4, "flag":5, "msg":6,
+			\ "rstart":7, "rend": 8, "id":9, "desc": 10}
 "}}}
 
 " Script Variables {{{
@@ -110,7 +117,7 @@ let s:monthLT =
 
 func! viske#start(...) "{{{
 
-	let dayDict = call("videm#cal#getTodayDict", a:000)
+	let dayDict = call("viske#cal#getTodayDict", a:000)
 	let s:year = dayDict['year']
 	let s:mon  = dayDict['mon']
 	let s:day  = dayDict['day']
@@ -124,8 +131,8 @@ func! viske#start(...) "{{{
 
 	"<dispMode> 0: Main/Sub, 1: Main/Sub/Cal, 2:Main/Sub/Todo/Cal
 	cal s:SplitWindow(s:dispMode)
-	nno q	:qa!<CR>
-
+	nno q	:qa!<CR>:<BS><CR>
+	nno Q	:cal <SID>QuitWithoutSave()<CR>
 	cal s:SetSubWin()
 	if s:winNr['todo'] > 0
 		cal s:SetTodoWin()
@@ -138,10 +145,15 @@ func! viske#start(...) "{{{
 	exe "set statusline=" . repeat(winwidth(1),"-")
 
 	cal s:SetLabels()
-	cal videm#cal#setSelectFunc("viske#selectCal")
+	cal viske#cal#setSelectFunc("viske#selectCal")
 
 	cal s:SetMainWin(s:day, s:mon, s:year)
 endf "}}}
+
+func! s:QuitWithoutSave()
+	autocmd! VimLeave
+	qall!
+endf
 
 func! s:SetLabels() "{{{
 	if exists("g:ViskeTaskTypeLabel")
@@ -173,40 +185,40 @@ func! s:SetHighLight() "{{{
 	"Main Window
 	let cList = []
 	if has("gui_running")
-		cal add(cList, videm#lib#getColor("ViskeMain", 'guibg=#112222 guifg=#EEEEBB'))
-		cal add(cList, videm#lib#getColor("ViskeTaskSelected", 'guifg=#AAAA33'))
+		cal add(cList, viske#lib#getColor("ViskeMain", 'guibg=#112222 guifg=#EEEEBB'))
+		cal add(cList, viske#lib#getColor("ViskeTaskSelected", 'guifg=#AAAA33'))
 	else
-		cal add(cList, videm#lib#getColor("ViskeMain", 'ctermbg=none ctermfg=none'))
-		cal add(cList, videm#lib#getColor("ViskeTaskSelected", 'ctermfg=7 guifg=#EEEEEE'))
+		cal add(cList, viske#lib#getColor("ViskeMain", 'ctermbg=none ctermfg=none'))
+		cal add(cList, viske#lib#getColor("ViskeTaskSelected", 'ctermfg=7 guifg=#EEEEEE'))
 	endif
 
-	cal add(cList, videm#lib#getColor("ViskeTimeLine", 'ctermfg=7 ctermbg=4 guifg=#333388 guibg=#8888AA'))
-	cal add(cList, videm#lib#getColor("ViskeTimeLineSelected", 'ctermfg=7 ctermbg=6'))
+	cal add(cList, viske#lib#getColor("ViskeTimeLine", 'ctermfg=7 ctermbg=4 guifg=#333388 guibg=#8888AA'))
+	cal add(cList, viske#lib#getColor("ViskeTimeLineSelected", 'ctermfg=7 ctermbg=6'))
 
-	cal add(cList, videm#lib#getColor("ViskeTask",  'ctermfg=7 guifg=#BBBBCC'))
-	cal add(cList, videm#lib#getColor("ViskeTask1", 'ctermfg=0 ctermbg=2 guifg=#225522 guibg=#77CC99'))
-	cal add(cList, videm#lib#getColor("ViskeTask2", 'ctermfg=0 ctermbg=3 guifg=#332233 guibg=#9955AA'))
-	cal add(cList, videm#lib#getColor("ViskeTask3", 'ctermfg=0 ctermbg=1 guifg=#552222 guibg=#CC2244'))
-	cal add(cList, videm#lib#getColor("ViskeTask4", 'ctermfg=0 ctermbg=5 guifg=#225522 guibg=#99AA55'))
-	cal add(cList, videm#lib#getColor("ViskeTask5", 'ctermfg=0 ctermbg=6 guifg=#112233 guibg=#446699'))
+	cal add(cList, viske#lib#getColor("ViskeTask",  'ctermfg=0 guifg=#BBBBCC'))
+	cal add(cList, viske#lib#getColor("ViskeTask1", 'ctermfg=0 ctermbg=2 guifg=#225522 guibg=#77CC99'))
+	cal add(cList, viske#lib#getColor("ViskeTask2", 'ctermfg=0 ctermbg=3 guifg=#332233 guibg=#9955AA'))
+	cal add(cList, viske#lib#getColor("ViskeTask3", 'ctermfg=0 ctermbg=1 guifg=#552222 guibg=#CC2244'))
+	cal add(cList, viske#lib#getColor("ViskeTask4", 'ctermfg=0 ctermbg=5 guifg=#225522 guibg=#99AA55'))
+	cal add(cList, viske#lib#getColor("ViskeTask5", 'ctermfg=0 ctermbg=6 guifg=#112233 guibg=#446699'))
 
-	cal add(cList, videm#lib#getColor("ViskeItemBullet", 'ctermfg=6 guifg=#333366'))
-	cal add(cList, videm#lib#getColor("ViskeItem",       'ctermfg=7 guifg=#DDDDFF'))
-	cal add(cList, videm#lib#getColor("ViskeTodoImp",    'ctermfg=1 guifg=#FF4466'))
-	cal add(cList, videm#lib#getColor("ViskeTodoDone",   'ctermfg=0 guifg=#888888'))
-	cal add(cList, videm#lib#getColor("ViskeTodo",       'ctermfg=2 guifg=#AAFFCC'))
+	cal add(cList, viske#lib#getColor("ViskeItemBullet", 'ctermfg=6 guifg=#333366'))
+	cal add(cList, viske#lib#getColor("ViskeItem",       'ctermfg=7 guifg=#DDDDFF'))
+	cal add(cList, viske#lib#getColor("ViskeTodoImp",    'ctermfg=1 guifg=#FF4466'))
+	cal add(cList, viske#lib#getColor("ViskeTodoDone",   'ctermfg=0 guifg=#888888'))
+	cal add(cList, viske#lib#getColor("ViskeTodo",       'ctermfg=2 guifg=#AAFFCC'))
 
-	cal add(cList, videm#lib#getColor("ViskeHolyday", 'ctermfg=1 guifg=#CC8888'))
-	cal add(cList, videm#lib#getColor("ViskeWeekday", 'ctermfg=4 guifg=#8888CC'))
-	cal add(cList, videm#lib#getColor("ViskeDay",     'ctermfg=7 guifg=#EEFFEE'))
+	cal add(cList, viske#lib#getColor("ViskeHolyday", 'ctermfg=1 guifg=#CC8888'))
+	cal add(cList, viske#lib#getColor("ViskeWeekday", 'ctermfg=4 guifg=#8888CC'))
+	cal add(cList, viske#lib#getColor("ViskeDay",     'ctermfg=7 guifg=#EEFFEE'))
 
-	cal add(cList, videm#lib#getColor("ViskeInputTime",  'ctermfg=3 guifg=#88CC88'))
-	cal add(cList, videm#lib#getColor("ViskeInputDelim", 'ctermfg=0 guifg=#444444'))
-	cal add(cList, videm#lib#getColor("ViskeInputPlace", 'ctermfg=6 guifg=#AA99CC'))
-	cal add(cList, videm#lib#getColor("ViskeVBoundary", 'ctermfg=0 ctermbg=0 guifg=#111111 guibg=#111111'))
+	cal add(cList, viske#lib#getColor("ViskeInputTime",  'ctermfg=3 guifg=#88CC88'))
+	cal add(cList, viske#lib#getColor("ViskeInputDelim", 'ctermfg=0 guifg=#444444'))
+	cal add(cList, viske#lib#getColor("ViskeInputPlace", 'ctermfg=6 guifg=#AA99CC'))
+	cal add(cList, viske#lib#getColor("ViskeVBoundary", 'ctermfg=0 ctermbg=0 guifg=#111111 guibg=#111111'))
 
-	let boundaryCL = videm#lib#getColor("ViskeBoundary", 'ctermfg=0 guibg=#111111')
-	let boundaryStr = videm#lib#getColor("ViskeBoundaryStr", 'ctermbg=7 guifg=#FFFFFF')
+	let boundaryCL = viske#lib#getColor("ViskeBoundary", 'ctermfg=0 guibg=#111111')
+	let boundaryStr = viske#lib#getColor("ViskeBoundaryStr", 'ctermbg=7 guifg=#FFFFFF')
 	if has("gui_running")
 		let boundaryCL[1]  = matchstr(boundaryCL[1],'guibg=[^[:blank:]]\+')
 		let boundaryStr[1] = matchstr(boundaryStr[1],'guifg=[^[:blank:]]\+')
@@ -220,7 +232,7 @@ func! s:SetHighLight() "{{{
 	cal add(cList, ["ViskeBoundary_A", boundaryCL[1] .' '. boundaryStr[1]])
 	cal add(cList, ["ViskeBoundary_B", boundaryCL[1] .' ctermbg=2'])
 	
-	let normalColor = videm#lib#getColor("ViskeMain", 'guifg=#EEEEEE guibg=#112222')[1]
+	let normalColor = viske#lib#getColor("ViskeMain", 'guifg=#EEEEEE guibg=#112222')[1]
 	"Twice Declartion is required!!
 	exe 'hi Normal '. normalColor
 	exe 'hi Normal '. normalColor
@@ -230,16 +242,16 @@ func! s:SetHighLight() "{{{
 	endfor
 	exe "hi ViskeIMPT ctermfg=1 guifg=#FF3333 ctermbg=0 guibg=#000000"
  
-	cal videm#lib#setColor("ViskeMain", "NonText", cList)
-	cal videm#lib#setColor("ViskeVBoundary", "VertSplit", cList)
-	cal videm#lib#setColor("ViskeTimeLineSelected", "CursorLine", cList)
-	cal videm#lib#setColor("ViskeBoundary_A", "StatusLine", cList)
-	cal videm#lib#setColor("ViskeBoundary_B", "StatusLineNC", cList)
-	cal videm#lib#setColor("ViskeTask", "ViskeTask_A", cList)
-	cal videm#lib#setColor("ViskeTask", "ViskeTask_B", cList)
+	cal viske#lib#setColor("ViskeMain", "NonText", cList)
+	cal viske#lib#setColor("ViskeVBoundary", "VertSplit", cList)
+	cal viske#lib#setColor("ViskeTimeLineSelected", "CursorLine", cList)
+	cal viske#lib#setColor("ViskeBoundary_A", "StatusLine", cList)
+	cal viske#lib#setColor("ViskeBoundary_B", "StatusLineNC", cList)
+	cal viske#lib#setColor("ViskeTask", "ViskeTask_A", cList)
+	cal viske#lib#setColor("ViskeTask", "ViskeTask_B", cList)
 
-	let s:TimeLineSelectedColor = videm#lib#getColor("ViskeTimeLineSelected", "cterfbg=0")[1]
-	let s:TaskSelectedColor = videm#lib#getColor("ViskeTaskSelected", 
+	let s:TimeLineSelectedColor = viske#lib#getColor("ViskeTimeLineSelected", "cterfbg=0")[1]
+	let s:TaskSelectedColor = viske#lib#getColor("ViskeTaskSelected", 
 				\ "ctermfg=7 guifg=#EEEEEE", 'f')[1] .
 				\ " ctermbg=NONE guibg=NONE term=underline gui=underline"
 
@@ -278,7 +290,7 @@ endf "}}}
 func! s:SetCalWin() "{{{
 	exe s:winNr['cal'] . "wincmd w"
 	exe "vert resize ". s:calWinWidth
-	cal videm#cal#display()
+	cal viske#cal#display()
 endf "}}}
 
 func! s:SaveTasks() "{{{
@@ -297,6 +309,8 @@ func! s:SaveTasks() "{{{
 		echo 'failed to save "'. fname ."'"
 		cal getchar()
 	endtry
+	cal filter(s:deletedTasks, 'v:val != "0"')
+	cal s:webFuncSet(s:deletedTasks)
 endf "}}}
 
 func! s:Close() "{{{
@@ -381,10 +395,10 @@ func! s:SetMainWin(day, mon, year) "{{{
 
 	nno <silent> <C-o> :cal <SID>FocusCal()<CR>:<BS>
 
-	"test command
-	nno <buffer> T					:call <SID>ScheTest()<CR>
 	nno <buffer> r					:call <SID>Refresh()<CR>
+	nno <buffer> R					:call <SID>Reload()<CR>
 	nno <buffer> s					:call <SID>SaveTasks()<CR>
+	nno <buffer> T					:call <SID>ScheTest()<CR>
 	auto VimResized <buffer> :cal <SID>Refresh()
 
 	cal s:SetWinWidth()
@@ -397,11 +411,19 @@ func! s:Refresh() "{{{
 	exe "resize ". s:subWinHeight
 	exe s:winNr['cal'] . "wincmd w"
 	exe "vert resize ". s:calWinWidth
-	cal videm#cal#reload()
+	cal viske#cal#reload()
 	exe s:winNr['main'] . "wincmd w"
 	cal s:SetWinWidth()
 	silent cal s:Show(s:day, s:mon, s:year)
 endf "}}}
+
+func! s:Reload()
+	cal s:SaveTasks()
+	cal s:SetWinWidth()
+	let s:taskArray = []
+	cal s:ReadTasks(s:mon, s:year) 
+	silent cal s:Show(s:day, s:mon, s:year)
+endf
 
 func! s:SetWinWidth() "{{{
 	if exists("g:ScheduleMinSlot") && g:ScheduleMinSlot > 2
@@ -413,7 +435,7 @@ func! s:SetWinWidth() "{{{
 	let s:timeSlot  = s:minSlot * 2
 	let s:winHeight = winheight(0)
 	let s:winWidth  = s:timeSlot * (s:endTime - s:startTime + 1) + 2
-	if videm#string#getDispLen(s:timeList[0]) > s:timeSlot
+	if viske#string#getDispLen(s:timeList[0]) > s:timeSlot
 		let s:timeList = s:timeListMin
 	endif
 
@@ -430,8 +452,8 @@ func! s:Show(day, mon, year) "{{{
 	let s:taskLine    = 1
 	let s:taskMaxLine = 0
 	cal sort(s:taskArray, "s:TaskListSort")
-	let eday = videm#cal#getLastDay(a:year, a:mon)
-	let wday = videm#cal#getWDay(a:year, a:mon, 1)
+	let eday = viske#cal#getLastDay(a:year, a:mon)
+	let wday = viske#cal#getWDay(a:year, a:mon, 1)
 	setl modifiable
 	%delete
 	cal s:FillCanvas(93 + len(s:taskArray)) 
@@ -466,7 +488,7 @@ func! s:MakeTimeLine(delim) "{{{
 	let pos = 2 - s:minSlot
 	for i in range(s:startTime, s:endTime)
 		let s:timeTitle = s:timeTitle . 
-					\videm#string#padding(s:timeList[i], s:timeSlot, ' ')
+					\viske#string#padding(s:timeList[i], s:timeSlot, ' ')
 		for j in range(0,1)
 			let idx = i + (j * 0.5)
 			"let pos = s:timeSlot * (i - s:startTime) + (j*(s:minSlot)) + s:offset
@@ -566,7 +588,7 @@ func! s:ReadTasks(mon, year) "{{{
 			cal add(s:taskArray, split(i, '\$\$'))
 		endfor
 	endif
-	cal s:WebFuncGet()
+	let s:taskArray = s:WebFuncGet()
 endf "}}}
 
 func! s:GetPos(time) "{{{
@@ -679,18 +701,20 @@ func! s:Str2Time(str) "{{{
 endf "}}}
 
 func! s:MakeTask(todo) range "{{{
-	let endCol = col('.')
-	let endLn  = line('.')
-	norm! gvo
-	let startCol = col('.')
-	if endLn != line('.') && a:todo == 0
-		norm! v
-		return
-	endif
-	if startCol > endCol
-		let tmp = endCol
-		let endCol = startCol
-		let startCol = tmp
+	if a:todo != 1
+		let endCol = col('.')
+		let endLn  = line('.')
+		norm! gvo
+		let startCol = col('.')
+		if endLn != line('.') && a:todo == 0
+			norm! v
+			return
+		endif
+		if startCol > endCol
+			let tmp = endCol
+			let endCol = startCol
+			let startCol = tmp
+		endif
 	endif
 	let s:winl = winline() - 2
 	let s:day = s:barLookup[line(".")]
@@ -763,7 +787,8 @@ func! s:TaskDelete() "{{{
 		return
 	endif
 	let s:YankBuf = copy(s:taskArray[s:taskLookup[npos[1]]])
-	call remove(s:taskArray, s:taskLookup[npos[1]])
+	cal add(s:deletedTasks, s:YankBuf[s:ID_ID])
+	cal remove(s:taskArray, s:taskLookup[npos[1]])
 	let s:winl = winline() - 2
 	silent cal s:Show(s:day, s:mon, s:year)
 endf "}}}
@@ -775,9 +800,11 @@ func! s:TaskChange() "{{{
 	endif
 	let s:YankBuf = copy(s:taskArray[s:taskLookup[npos[1]]])
 	let s:day = s:YankBuf[s:ID_Day]
-	call remove(s:taskArray, s:taskLookup[npos[1]])
+	cal add(s:deletedTasks, s:YankBuf[s:ID_ID])
+	cal remove(s:taskArray, s:taskLookup[npos[1]])
 
 	let s:winl = winline() - 2
+	silent cal s:Show(s:day, s:mon, s:year)
 	exe s:winNr['sub'] . "wincmd w"
 	%delete
 	let tmark = s:taskTypeMarkNum[s:YankBuf[s:ID_Flag]]
@@ -804,11 +831,11 @@ func! s:TaskPaste() "{{{
 	if has_key(s:barLookup, npos[1]) == 0 || len(s:YankBuf) <= 0
 		return
 	endif
-
 	let newTask = copy(s:YankBuf)
 	let newTask[s:ID_Year] = s:year
-	let newTask[s:ID_Mon] = s:mon
-	let newTask[s:ID_Day] = s:day
+	let newTask[s:ID_Mon]  = s:mon
+	let newTask[s:ID_Day]  = s:day
+	let newTask[s:ID_ID]   = "0"
 	cal add(s:taskArray, newTask)
 	let s:winl = winline() - 2
 	silent cal s:Show(s:day, s:mon, s:year)
@@ -856,7 +883,7 @@ func! s:TaskListSort(l1, l2) "{{{
 endf "}}}
 
 func! s:SplitMsg(msg, len, pad, rev) "{{{
-	let dispLen = videm#string#getDispLen(a:msg)
+	let dispLen = viske#string#getDispLen(a:msg)
 	if strlen(a:msg) == dispLen
 		retu s:SplitMsgNMB(a:msg, a:len, a:pad, a:rev)
 	endif
@@ -864,16 +891,16 @@ func! s:SplitMsg(msg, len, pad, rev) "{{{
 		retu [a:msg, ""]
 	elseif dispLen > a:len
 		if a:rev == 0
-			let nstr = videm#string#trimDispLen(a:msg, a:len, 0)
+			let nstr = viske#string#trimDispLen(a:msg, a:len, 0)
 			let rstr = strpart(a:msg, strlen(nstr))
-			if videm#string#getDispLen(nstr) < a:len
+			if viske#string#getDispLen(nstr) < a:len
 				let nstr = a:pad . nstr
 			endif
 			retu [nstr, rstr]
 		else
-			let nstr = videm#string#trimDispLenRev(a:msg, a:len, 0)
+			let nstr = viske#string#trimDispLenRev(a:msg, a:len, 0)
 			let rstr = strpart(a:msg, 0, (strlen(a:msg) - strlen(nstr)))
-			if videm#string#getDispLen(nstr) < a:len
+			if viske#string#getDispLen(nstr) < a:len
 				let nstr = nstr . a:pad
 			endif
 			retu [nstr, rstr]
@@ -953,13 +980,16 @@ func s:ModifyTask(flg) "{{{
 	if has_key(s:taskLookup, ln) == 0
 		return
 	endif
+	let task   = s:taskArray[s:taskLookup[ln]]
 
-	let task = s:taskArray[s:taskLookup[ln]]
-	let etime = task[s:ID_End] 
-	let stime = task[s:ID_Start]
-	let retime = task[s:ID_REnd] 
+	cal add(s:deletedTasks, task[s:ID_ID])
+	let task[s:ID_ID] = "0"
+
+	let etime  = task[s:ID_End]
+	let stime  = task[s:ID_Start]
+	let retime = task[s:ID_REnd]
 	let rstime = task[s:ID_RStart]
-	let otime = stime
+	let otime  = stime
 
 	let et = str2float(task[s:ID_End])
 	let st = str2float(task[s:ID_Start])
@@ -1010,7 +1040,7 @@ endf "}}}
 
 func s:MakeDispTask(msg, flg, len, pos)"{{{
 	let offset = 0
-	if s:cutDownMsg || a:pos + videm#string#getDispLen(a:msg) < s:winWidth
+	if s:cutDownMsg || a:pos + viske#string#getDispLen(a:msg) < s:winWidth
 		let msg = s:SplitMsg(a:msg, a:len, " ", 0) 
 		if msg[1] == "" || s:cutDownMsg
 			let rmsg = "?1?" . msg[0] ."$". a:flg ."$"
@@ -1022,7 +1052,7 @@ func s:MakeDispTask(msg, flg, len, pos)"{{{
 		if msg[1] == "" 
 			let rmsg = "?1?". msg[0] ."$". a:flg ."$"
 		else
-			let offset = videm#string#getDispLen(msg[1])
+			let offset = viske#string#getDispLen(msg[1])
 			let rmsg = msg[1] ."?1?". msg[0] ."$". a:flg ."$"
 		endif
 	endif
@@ -1067,6 +1097,10 @@ func! s:FlagChange(flg) "{{{
 		return
 	endif
 	let tmp = (s:taskArray[s:taskLookup[ln]])
+
+	cal add(s:deletedTasks, tmp[s:ID_ID])
+	let tmp[s:ID_ID] = "0"
+
 	if tmp[s:ID_Flag] == '6'
 		cal s:TodoFlagChange(a:flg)
 	else
@@ -1150,8 +1184,8 @@ endf "}}}
 
 func! viske#selectCal(day, mon, year) "{{{
 	cal s:SaveTasks()
-	let s:day = a:day
-	let s:mon = a:mon
+	let s:day  = a:day
+	let s:mon  = a:mon
 	let s:year = a:year
 	exe s:winNr['main'] . "wincmd w"
 	cal s:SetWinWidth()
@@ -1167,31 +1201,39 @@ func! s:IsDesc(a) "{{{
 	retu 0
 endf "}}}
 
-func viske#setWebFuncGet(fname)
-	let s:webFuncGet = function(a:fname)
-endf
-func viske#setWebFuncSet(fname)
-	let s:WebFuncSet = function(a:fname)
-endf
+func s:WebFuncGet() "{{{
+	if !exists("s:webFuncGet")
+		retu s:taskArray
+	endif
+	if !exists("g:ViskeGcalNoConfirm")
+		let confret = confirm("Download from " . s:webSyncName ."?", "&Yes\n&No", 1)
+		if confret > 1
+			let g:ViskeSyncReadOnly = 1
+			retu s:taskArray
+		endif
+	endif
+	retu call(s:webFuncGet, [s:taskArray, s:mon, s:year])
+endf "}}}
 
-func s:DefaultWebFuncGet(taskArray)
-	retu a:taskArray
-endf
+func s:webFuncSet(deltasks) "{{{
+	if exists("g:ViskeSyncReadOnly") || !exists("s:WebFuncSet")
+		retu
+	endif
+	if !exists("g:ViskeGcalNoConfirm")
+		let confret = confirm("Syncronyze with ". s:webSyncName ."?", "&Yes\n&No", 1)
+		if confret > 1
+			retu
+		endif
+	endif
+	let retval = call(s:WebFuncSet, [a:deltasks, s:mon, s:year])
+	if retval < 0
+		"Save Delete Tasks
+		" TODO
+	endif
+	retu
+endf "}}}
 
-let s:webFuncGet = function("s:DefaultWebFuncGet")
-func s:WebFuncGet()
-	let s:taskArray = call(s:webFuncGet, [s:taskArray])
-endf
-
-func s:DefaultWebFuncSet(taskArray)
-	retu a:taskArray
-endf
-let s:WebFuncSet = function("s:DefaultWebFuncSet")
-func s:webFuncSet()
-	let s:taskArray = call(s:WebFuncSet, [s:taskArray])
-endf
-
-func! viske#RtimeToDtime(str)
+func! viske#RtimeToDtime(str) "{{{
 	let hm = split(a:str, ':')
 	if str2nr(hm[0]) < s:startTime
 		let hm[0] = printf("%d", s:startTime)
@@ -1200,6 +1242,7 @@ func! viske#RtimeToDtime(str)
 		let hm[0] = printf("%d", s:endTime + 1)
 		let hm[1] = 0
 	else
+		let hm[0] = substitute(hm[0], '^0', '', '')
 		if str2nr(hm[1]) < 30
 			let hm[1] = 0
 		else 
@@ -1207,12 +1250,24 @@ func! viske#RtimeToDtime(str)
 		endif
 	endif
 	retu hm[0] .".". hm[1]
-endf
+endf "}}}
 
 func! s:ScheTest()
 	"echo s:taskArray
-	echo s:TimeLineSelectedColor
+	"echo s:TimeLineSelectedColor
+	echo s:barLookup
+	"echo s:deletedTasks
 	cal getchar()
+endf
+
+func viske#setSyncFunc(fname)
+	let s:webSyncName = call(a:fname . "#name", [])
+	let s:webFuncGet = function(a:fname . "#get")
+	let s:WebFuncSet = function(a:fname . "#set")
+endf
+
+func! viske#getDir()
+	retu s:scheduleDir
 endf
 
 let &cpo = s:cpo_save

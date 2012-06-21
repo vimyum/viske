@@ -1,5 +1,5 @@
 "=============================================================================
-" File: videm#cal.vim
+" File: viske#cal.vim
 " Author: Sagara Takahiro <vimyum@gmail.com>
 " License: MIT license  {{{
 "     Permission is hereby granted, free of charge, to any person obtaining
@@ -47,11 +47,11 @@ let s:day =1
 
 let s:useTabTitle = 0
 
-func videm#cal#useTabLine(num)
+func viske#cal#useTabLine(num)
 	let s:useTabTitle = a:num
 endf
 
-func videm#cal#getTodayDict(...)
+func viske#cal#getTodayDict(...)
 	let tyear = strftime('%Y')
 	let tmon  = matchstr(strftime('%m'), '[^0].*')
 	let tday  = matchstr(strftime('%d'), '[^0].*')
@@ -70,13 +70,13 @@ func videm#cal#getTodayDict(...)
 	retu {'day':tday, 'mon':tmon, 'year':tyear }
 endf
 
-func videm#cal#display(...)
-	let dayDict = call("videm#cal#getTodayDict", a:000)
+func viske#cal#display(...)
+	let dayDict = call("viske#cal#getTodayDict", a:000)
 	let s:year = dayDict['year']
 	let s:mon  = dayDict['mon']
 	let s:day  = dayDict['day']
 
-	let todayDict = videm#cal#getTodayDict()
+	let todayDict = viske#cal#getTodayDict()
 	let s:tyear = todayDict['year']
 	let s:tmon  = todayDict['mon']
 	let s:tday  = todayDict['day']
@@ -85,12 +85,12 @@ func videm#cal#display(...)
 	nno <silent><buffer> <C-n>	:silent cal <SID>NextMon()<CR>
 	nno <silent><buffer> <C-p>	:silent cal <SID>PrevMon()<CR>
 	nno <silent><buffer> q		:qa!<CR>
-    nno <silent><buffer> tt     :cal videm#cal#testFunc()<CR>
+    nno <silent><buffer> tt     :cal viske#cal#testFunc()<CR>
 	cal s:SetHilight()
-	cal videm#cal#reload()
+	cal viske#cal#reload()
 endf
 
-func videm#cal#reload()
+func viske#cal#reload()
 	setl modifiable
 	exe "%delete"
 	cal s:BulidCal(s:year, s:mon)
@@ -111,10 +111,10 @@ endf
 
 func s:SetHilight()
 	let cList = []
-	cal add(cList, videm#lib#getColor("VidemCalToday", 'ctermfg=3 ctermbg=5 guifg=#112233 guibg=#88CCEE'))
-	cal add(cList, videm#lib#getColor("VidemCalHolyday", 'ctermfg=1 guifg=#EEAA99'))
-	cal add(cList, videm#lib#getColor("VidemCalWDayTitle", 'ctermfg=4 guifg=#7788EE'))
-	cal add(cList, videm#lib#getColor("VidemCalDateTitle", 'ctermfg=6 guifg=#77EE88'))
+	cal add(cList, viske#lib#getColor("VidemCalToday", 'ctermfg=3 ctermbg=5 guifg=#112233 guibg=#88CCEE'))
+	cal add(cList, viske#lib#getColor("VidemCalHolyday", 'ctermfg=1 guifg=#EEAA99'))
+	cal add(cList, viske#lib#getColor("VidemCalWDayTitle", 'ctermfg=4 guifg=#7788EE'))
+	cal add(cList, viske#lib#getColor("VidemCalDateTitle", 'ctermfg=6 guifg=#77EE88'))
 	for i in cList
 		exe 'hi '. i[0] .' '. i[1]
 	endfor
@@ -149,8 +149,8 @@ func! s:BulidCal(year, mon)
 	let adjs = repeat(" ", (winwidth(0) - 20) / 2)
 	let dp =  adjs ." ". wdayTitle
 	put =dp
-	let lday  = videm#cal#getLastDay(a:year, a:mon)
-	let wday = videm#cal#getWDay(a:year, a:mon, 1)
+	let lday  = viske#cal#getLastDay(a:year, a:mon)
+	let wday = viske#cal#getWDay(a:year, a:mon, 1)
 	let day = 1
 	let dp =  repeat('   ', wday)
 	while day <= lday
@@ -174,7 +174,7 @@ func! s:BulidCal(year, mon)
 	endif
 
 	let dateTitle = "<". a:year ."年". a:mon . "月>"
-	let pad =(winwidth(0) - videm#string#getDispLen(dateTitle))/2 + 2
+	let pad =(winwidth(0) - viske#string#getDispLen(dateTitle))/2 + 2
 	if s:useTabTitle == 0
 		let pads = repeat(" ", pad)
 		cal setline(1, pads . dateTitle . pads)
@@ -187,7 +187,7 @@ func! s:BulidCal(year, mon)
 	endif
 endf
 
-func! videm#cal#getLastDay(year, mon)
+func! viske#cal#getLastDay(year, mon)
 	if a:mon == 2
 		if a:year % 4==0
 			if (a:year % 100) == 0 && (a:year % 400) != 0
@@ -206,7 +206,7 @@ func! videm#cal#getLastDay(year, mon)
 	endif
 endf
 
-func! videm#cal#getWDay(year, mon, day)
+func! viske#cal#getWDay(year, mon, day)
 	let yu = matchstr(a:year, '^\d\{2}')
 	let yl = matchstr(a:year, '\d\{2}$')
 	if a:mon < 2
@@ -236,7 +236,7 @@ function! s:NextMon()
         let s:mon   = 1
         let s:year += 1
     endif
-	cal videm#cal#reload()
+	cal viske#cal#reload()
 endfunction
 
 func! s:PrevMon()
@@ -245,10 +245,10 @@ func! s:PrevMon()
         let s:mon   = 12
         let s:year -= 1
     endif
-	cal videm#cal#reload()
+	cal viske#cal#reload()
 endf
 
-func videm#cal#setSelectFunc(fname)
+func viske#cal#setSelectFunc(fname)
 	let s:selectFunc = function(a:fname)
 endf
 
@@ -267,7 +267,7 @@ func s:Select()
 	cal call(s:selectFunc, [day, s:mon, s:year])
 endf
 
-func! videm#cal#testFunc()
+func! viske#cal#testFunc()
 	echo "syn match VidemCalToday '". '\s\@<=\s'. s:tday .'\s\@=' . "' "
 	cal getchar()
 endf
