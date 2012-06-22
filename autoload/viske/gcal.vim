@@ -34,6 +34,16 @@ func! viske#gcal#get(curTaskArray, mon, year)
 		retu a:curTaskArray
 	endif
 
+	if !filereadable(s:gcalScript)
+		let bundlePlc = $HOME . ".vim/bundle/viske/ruby/gcal.rb"
+		if !filereadable(bundlePlc)
+			echo "[gcal] Place the gcal.rb script on ". s:gcalScript
+			cal getchar()
+			retu a:curTaskArray
+		endif
+		let s:gcalScript = bundlePlc
+	endif
+
 	cal add(argl, '--month ' . a:mon)
 	cal add(argl, '--year '  . a:year)
 	cal add(argl, '--id '    . g:viskeGcalId)
