@@ -5,9 +5,9 @@ else
 	finish
 endif
 
-let s:gcalScript = get(g:, "ViskeGcalGetScript", $HOME . "/.vim/ruby/gcal.rb")
-let s:tzone      = get(g:, "ViskeGcalTZone", "+0900")
-let s:afile      = get(g:, "ViskeGcalAuthFile", $HOME . "/.google-api.yaml")
+let s:gcalScript = get(g:, "viskeGcalGetScript", $HOME . "/.vim/ruby/gcal.rb")
+let s:tzone      = get(g:, "viskeGcalTZone", "+0900")
+let s:afile      = get(g:, "viskeGcalAuthFile", $HOME . "/.google-api.yaml")
 
 func! viske#gcal#name()
 	retu "Google Calendar"
@@ -20,7 +20,6 @@ func! viske#gcal#get(curTaskArray, mon, year)
 	let deleteTask   = []
 	let s:dir = viske#getDir()
 	let s:ofile = get(g:, "ViskeGcalTaskFile", s:dir . "viskeGoogleCalendar")
-	let s:logfile = get(g:, "ViskeGcalLogFile", s:dir . ".viskeGoogleCalendar.log")
 
 	"Create arguments
 	let argl = []
@@ -42,7 +41,10 @@ func! viske#gcal#get(curTaskArray, mon, year)
 	cal add(argl, '--tzone ' . s:tzone)
 	cal add(argl, '--afile ' . s:afile)
 	cal add(argl, '--ofile ' . s:ofile)
-	cal add(argl, '--log ' . s:logfile)
+	if exists("g:viskeGcalLogFile")
+		cal add(argl, '--log ' . g:viskeGcalLogFile)
+	endif
+
 	let argstr = join(argl, ' ')
 	echo "Now downloading from Google Calendar..."
 	try
@@ -89,11 +91,12 @@ func! viske#gcal#set(taskl, mon, year)
 	endif
 	let s:dir = viske#getDir()
 	let s:ofile = get(g:, "ViskeGcalTaskFile", s:dir . "viskeGoogleCalendar")
-	let s:logfile = get(g:, "ViskeGcalLogFile", s:dir .".viskeGoogleCalendar.log")
 
 	let argl = []
-	cal add(argl, '--log ' . s:logfile)
 	cal add(argl, '--id '  . g:viskeGcalId)
+	if exists("g:viskeGcalLogFile")
+		cal add(argl, '--log ' . g:viskeGcalLogFile)
+	endif
 	let argstr = join(argl, ' ')
 
 	if len(a:taskl) > 0
