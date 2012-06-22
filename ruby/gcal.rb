@@ -1,8 +1,13 @@
 require 'rubygems'
 require 'google/api_client'
 require 'yaml'
-require "optparse"
-require "parsedate"
+require 'optparse'
+require 'parsedate'
+require 'timeout'
+require 'date'
+
+# Google Calendar ColorId Memo
+# 1(None),9(Bold-Blue),12(Blue),7(Blue-Green),2(Green),10(Bold-Green),5(Yellow),6(Orange),4(Red),11(Bold-Red),3(Purple),8(Grey)
 
 typeHash = {"1"=>"1", "2"=>"1", "3"=>"2", "4"=>"3", \
 	"5"=>"3",  "6"=>"3",  "7"=>"4",  "8"=>"4", \
@@ -12,6 +17,13 @@ vEventList = Array.new
 
 ch = Hash.new
 
+def dprint(f, msg)
+	if f == nil
+		return
+	end
+	f.puts msg
+end
+
 #Set default config
 ch[:month]   = Time::now.month
 ch[:year]    = Time::now.year
@@ -19,7 +31,6 @@ ch[:dir] = ENV['HOME'] + "/Schedule/"
 ch[:tzone]   = "+0800"
 ch[:afile]   = ENV['HOME'] + '/.google-api.yaml'
 ch[:ofile]   = ch[:dir] + '/viskeGoogleCalendar'
-ch[:lfile]   = ch[:dir] + '/.viskeGoogleCalendar.log'
 
 #Set parameter analyzing
 opts = OptionParser.new
@@ -56,20 +67,24 @@ opts.on("--dlist VAL")  {|v|
 
 opts.parse!(ARGV)     
 
-lfile = open(ch[:lfile], "a")
-lfile.puts ch[:event] + Time.now.strftime(" start (%Y-%m-%d %H:%M) ")
+if ch[:lfile] != nil
+	lfile = open(ch[:lfile], "a")
+	lfile.puts ch[:event] + Time.now.strftime(" start (%Y-%m-%d %H:%M) ")
+else
+	lfile = nil
+end
 
 if ch[:id] == nil
-	lfile.puts "calendar ID is required."
-	lfile.close
+	dprint(lfile, "calendar ID is required.")
+	lfile.close if lfile
 	return -1
 end
 
 if FileTest.exist?(ch[:afile]) == false
-	lfile.puts "failed to find authorization file."
-	lfile.put  ">google-api oauth-2-login --scope=https://www.googleapis.com/auth/calendar"
-	lfile.puts "--client-id={ID} --client-secret={SEC}"
-	lfile.close
+	dprint(lfile, "failed to find authorization file.")
+	dprint(lfile,  ">google-api oauth-2-login --scope=https://www.googleapis.com/auth/calendar \\")
+	dprint(lfile, "--client-id={ID} --client-secret={SEC}")
+	lfile.close if lfile
 	return -1
 end
 
@@ -86,7 +101,15 @@ client.authorization.access_token = oauth_yaml["access_token"]
 #	client.authorization.fetch_access_token!
 #end
 
-client.authorization.fetch_access_token!
+begin
+	timeout(5) {
+		client.authorization.fetch_access_token!
+	}
+rescue Timeout::Error
+	dprint(lfile, "Timeout at feching access token!")
+	lfile.close if lfile
+	return -1
+end
 service = client.discovered_api('calendar', 'v3')
 
 if ch[:event] == "insert"
@@ -124,8 +147,19 @@ if ch[:event] == "insert"
 			kind  = colorHash[field[id_Flag]]
 			if field[id_Flag] == "6"
 				stime = field[id_Year] + "-" + sprintf("%.2d",field[id_Mon].to_i) + "-" + sprintf("%.2d", field[id_Day].to_i)
+				case summary[0,1]
+				when "!"
+					kind = "11" #Red
+				when "-"
+					kind = "8" #Gray
+				when "+"
+					kind = "10"  #Green
+				else
+					kind = "1"  #Blue
+				end
 				event = {
 					'summary' => summary,
+					'colorId' => kind,
 					'description' => desc,
 					'location' => location,
 					'start' => {'date' => stime },
@@ -145,15 +179,21 @@ if ch[:event] == "insert"
 					'end' => { 'dateTime' => etime },
 				}
 			end
-			result = client.execute(:api_method => service.events.insert,
-									:parameters => {'calendarId' => ch[:id]},
-									:body => JSON.dump(event),
-									:headers => {'Content-Type' => 'application/json'})
-			newId = result.data.id
+
+			begin
+				result = nil
+				timeout(5) {
+					result = client.execute(:api_method => service.events.insert,
+											:parameters => {'calendarId' => ch[:id]},
+											:body => JSON.dump(event),
+											:headers => {'Content-Type' => 'application/json'})
+				}
+				newId = result.data.id
+			rescue Timeout::Error
+				dprint(lfile, "Timeout at updating:" + summary)
+			end
 			if newId == nil
-				lfile.puts "failed to update:" + summary
-				p result
-				p result.data
+				dprint(lfile, "failed to update:" + summary)
 				newId = "0"
 			end
 			nl = l.scan(/(^(.*?\$\$){9})/)[0][0] + newId + "$$" + desc.strip
@@ -175,31 +215,39 @@ end
 
 if ch[:event] == "delete"
 	if ch[:dlist] == nil
-		lfile.puts "No task to be deleted."
-		lfile.close
+		dprint(lfile, "No task to be deleted.")
+		lfile.close if lfile
 		return 0
 	end
 	dList = ch[:dlist].split(/\s*,\s*/)
 	dList.each {|e|
-		lfile.puts "delete '" + e +"'"
-		result = client.execute(:api_method => service.events.delete,
-								:parameters => {'calendarId' => ch[:id], 'eventId' => e})
+		dprint(lfile, "delete '" + e +"'")
+		begin
+			timeout(5) {
+				result = client.execute(:api_method => service.events.delete,
+										:parameters => {'calendarId' => ch[:id], 'eventId' => e})
+			}
+		rescue Timeout::Error
+			dprint(lfile, "Timeout at deleting")
+		end
 	}
 end
 
 if ch[:event] == "list"
-	lfile.puts "list events start.."
-	minTime = ch[:year] + "-" +  ch[:month] + '-01T00:00:00.000-07:00'
-	maxTime = ch[:year] + "-" +  ch[:month] + '-01T00:00:00.000-07:00'
+	dprint(lfile, "list events start..")
+
+	minTime = Date.new(ch[:year].to_i, ch[:month].to_i,  1).to_s + 'T00:00:00.000' + ch[:tzone]
+	maxTime = Date.new(ch[:year].to_i, ch[:month].to_i, -1).to_s + 'T00:00:00.000' + ch[:tzone]
 
 	page_token = nil
 	result = client.execute(:api_method => service.events.list,
-							:parameters => { 'calendarId' => ch[:id], 'timeMin' => minTime})
+							:parameters => { 'calendarId' => ch[:id], 'timeMin' => minTime,
+								'timeMax' => maxTime })
 	while true
 		events = result.data.items
 		events.each do |e|
 			vEvent  = Hash.new
-			lfile.puts e
+			dprint(lfile, e)
 			vEvent["id"]       = e.id ? e.id : "0"
 			vEvent["summary"]  = e.summary ? e.summary : "NoTitle"
 			vEvent["kind"]     = e.color_id ? typeHash[e.color_id] : 1
@@ -214,6 +262,8 @@ if ch[:event] == "list"
 				vEvent["sTime"] = sTime.strftime("00:00") 
 				vEvent["kind"] = 6
 			else 
+				puts vEvent["summary"]
+				p e.start.dateTime
 				sTime = e.start.dateTime
 				vEvent["sDay"]  = sTime.strftime("%d")  
 				vEvent["sTime"] = sTime.strftime("%H:%M") 
@@ -232,8 +282,15 @@ if ch[:event] == "list"
 		if !(page_token = result.data.next_page_token)
 			break
 		end
-		result = client.execute(:api_method => service.events.list, 
-								:parameters => {'calendarId' => ch[:id], 'pageToken' => page_token})
+		begin
+			timeout(10) {
+				result = client.execute(:api_method => service.events.list, 
+										:parameters => {'calendarId' => ch[:id], 
+											'pageToken' => page_token })
+			}
+		rescue Timeout::Error
+			dprint(lfile, "Timeout at downloding lists")
+		end
 	end
 	f = open(ch[:ofile], "w")
 	vEventList.each {|e|
@@ -245,4 +302,4 @@ if ch[:event] == "list"
 	f.close
 end
 
-lfile.close
+lfile.close if lfile

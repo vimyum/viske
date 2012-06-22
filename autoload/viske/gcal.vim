@@ -1,6 +1,13 @@
+
+if !exists('s:is_enabled')
+	let s:is_enabled = 0
+else
+	finish
+endif
+
 let s:gcalScript = get(g:, "ViskeGcalGetScript", $HOME . "/.vim/ruby/gcal.rb")
-let s:tzone     = get(g:, "ViskeGcalTZone", "+0900")
-let s:afile     = get(g:, "ViskeGcalAuthFile", $HOME . "/.google-api.yaml")
+let s:tzone      = get(g:, "ViskeGcalTZone", "+0900")
+let s:afile      = get(g:, "ViskeGcalAuthFile", $HOME . "/.google-api.yaml")
 
 func! viske#gcal#name()
 	retu "Google Calendar"
@@ -50,6 +57,7 @@ func! viske#gcal#get(curTaskArray, mon, year)
 		cal add(newTaskArray, split(i, '\$\$'))
 	endfor
 	for j in newTaskArray
+		let j[id["day"]]   = substitute(j[id["day"]], '^0', '','')
 		let j[id["start"]] = viske#RtimeToDtime(j[id["rstart"]])
 		let j[id["end"]]   = viske#RtimeToDtime(j[id["rend"]])
 		if  j[id["id"]] != ""

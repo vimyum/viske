@@ -32,6 +32,8 @@ set encoding=utf-8
 
 if !exists('s:is_enabled')
 	let s:is_enabled = 0
+else
+	finish
 endif
 
 " Set Default Values {{{
@@ -1205,7 +1207,7 @@ func s:WebFuncGet() "{{{
 	if !exists("s:webFuncGet")
 		retu s:taskArray
 	endif
-	if !exists("g:ViskeGcalNoConfirm")
+	if !exists("g:viskeSyncNoConfirm")
 		let confret = confirm("Download from " . s:webSyncName ."?", "&Yes\n&No", 1)
 		if confret > 1
 			let g:ViskeSyncReadOnly = 1
@@ -1219,7 +1221,7 @@ func s:webFuncSet(deltasks) "{{{
 	if exists("g:ViskeSyncReadOnly") || !exists("s:WebFuncSet")
 		retu
 	endif
-	if !exists("g:ViskeGcalNoConfirm")
+	if !exists("g:viskeSyncNoConfirm")
 		let confret = confirm("Syncronyze with ". s:webSyncName ."?", "&Yes\n&No", 1)
 		if confret > 1
 			retu
@@ -1253,9 +1255,9 @@ func! viske#RtimeToDtime(str) "{{{
 endf "}}}
 
 func! s:ScheTest()
-	"echo s:taskArray
+	echo s:taskArray
 	"echo s:TimeLineSelectedColor
-	echo s:barLookup
+	"echo s:barLookup
 	"echo s:deletedTasks
 	cal getchar()
 endf

@@ -30,6 +30,12 @@ set cpo&vim
 scriptencoding utf-8
 set encoding=utf-8
 
+if !exists('s:is_enabled')
+	let s:is_enabled = 0
+else
+	finish
+endif
+
 let s:wdayTitlesJP = ["日","月","火","水","木","金","土"]
 let s:wdayTitlesCN = ["天","一","二","三","四","五","六"]
 let s:wdayTitlesEN = ["Su","Mo","Tu","We","Th","Fr","Sa"]
