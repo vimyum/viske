@@ -1210,7 +1210,7 @@ func s:WebFuncGet() "{{{
 	if !exists("g:viskeSyncNoConfirm")
 		let confret = confirm("Download from " . s:webSyncName ."?", "&Yes\n&No", 1)
 		if confret > 1
-			let g:ViskeSyncReadOnly = 1
+			let g:viskeSyncReadOnly = 1
 			retu s:taskArray
 		endif
 	endif
@@ -1218,7 +1218,7 @@ func s:WebFuncGet() "{{{
 endf "}}}
 
 func s:webFuncSet(deltasks) "{{{
-	if exists("g:ViskeSyncReadOnly") || !exists("s:WebFuncSet")
+	if exists("g:viskeSyncReadOnly") || !exists("s:WebFuncSet")
 		retu
 	endif
 	if !exists("g:viskeSyncNoConfirm")
