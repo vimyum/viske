@@ -136,14 +136,25 @@ func s:SetHilight()
 endf
 
 func! s:GetWdayTitle()
-	if !exists("g:wdayTitlesLang")
-		retu s:wdayTitlesJP
-	endif g:wdayTitlesLang == 'EN'
+	if !exists("g:viskeCalLang")
 		retu s:wdayTitlesEN
-	elseif g:wdayTitlesLang == 'CN'
+	elseif g:viskeCalLang == 'JP'
+		retu s:wdayTitlesJP
+	elseif g:viskeCalLang == 'CN'
 		retu s:wdayTitlesCN
 	endif
-	retu s:wdayTitlesJP
+	retu s:wdayTitlesEN
+endf
+
+func! s:GetMonthTitle()
+	if !exists("g:viskeCalLang")
+		retu "<%d-%d>"
+	elseif g:viskeCalLang == 'JP'
+		retu "<%d年%d月>"
+	elseif g:viskeCalLang == 'CN'
+		retu "<%d年%d月>"
+	endif
+	retu "<%d-%d>"
 endf
 
 func! s:BulidCal(year, mon)
@@ -179,7 +190,8 @@ func! s:BulidCal(year, mon)
 		put =dp
 	endif
 
-	let dateTitle = "<". a:year ."年". a:mon . "月>"
+	let titleTemplate = s:GetMonthTitle()
+	let dateTitle = printf(titleTemplate, a:year, a:mon)
 	let pad =(winwidth(0) - viske#string#getDispLen(dateTitle))/2 + 2
 	if s:useTabTitle == 0
 		let pads = repeat(" ", pad)
