@@ -77,13 +77,15 @@ let g:viske#id = {"year":0, "mon":1, "day":2, "start":3, "end":4, "flag":5, "msg
 let s:year=1999
 let s:mon=1
 let s:day=1
+let s:openday=1
 let s:splitChar = '\$\$'
 let s:taskDelimiter = '$$'
 let s:linePeriod = 8
 
 let s:taskLine    = 1
 let s:taskMaxLine = 0
-let s:todayLine   = 0
+let s:currentLine   = 0
+let s:todayLine = 0
 
 let s:winNr = {'main':0, 'sub':0, 'cal':0, 'todo':0}
 let s:posArray  = {}
@@ -123,6 +125,7 @@ func! viske#start(...) "{{{
 	let s:year = dayDict['year']
 	let s:mon  = dayDict['mon']
 	let s:day  = dayDict['day']
+	let s:openday = s:day
 
 	set buftype=nowrite
 	set noswapfile
@@ -135,6 +138,7 @@ func! viske#start(...) "{{{
 	cal s:SplitWindow(s:dispMode)
 	nno q	:qa!<CR>:<BS><CR>
 	nno Q	:cal <SID>QuitWithoutSave()<CR>
+	nno <C-o>	:cal viske#focusToggle()<CR>
 	cal s:SetSubWin()
 	if s:winNr['todo'] > 0
 		cal s:SetTodoWin()
@@ -395,8 +399,6 @@ func! s:SetMainWin(day, mon, year) "{{{
 	nno <buffer> ) :cal <SID>ModifyTask(")")<CR>:<BS>
 	nno <buffer> ( :cal <SID>ModifyTask("(")<CR>:<BS>
 
-	nno <silent> <C-o> :cal <SID>FocusCal()<CR>:<BS>
-
 	nno <buffer> r					:call <SID>Refresh()<CR>
 	nno <buffer> R					:call <SID>Reload()<CR>
 	nno <buffer> s					:call <SID>SaveTasks()<CR>
@@ -462,8 +464,12 @@ func! s:Show(day, mon, year) "{{{
 	cal s:MakeTimeLine('|')
 	for i in range(1, eday)
 		if a:day == i
+			let s:currentLine = s:taskLine
+		endif
+		if s:openday == i
 			let s:todayLine = s:taskLine
 		endif
+		
 		let wday = s:ShowDayLine(i, wday)
 		if s:ShowTasks(printf("%d",i)) == 0
 			cal s:ShowTimeLine()
@@ -471,7 +477,7 @@ func! s:Show(day, mon, year) "{{{
 		let  s:taskLine += 1
 	endfor
 	setl nomodifiable
-	cal cursor(s:todayLine + 1, 2)
+	cal cursor(s:currentLine + 1, 2)
 	if s:winl > 0
 		exe 'norm! zt'. s:winl .''
 	else
@@ -625,6 +631,36 @@ endf "}}}
 func! s:MoveToday() "{{{
 	cal cursor(s:todayLine + 1, 0)
 endf "}}}
+
+func! viske#moveNextMonth()
+	cal s:SaveTasks()
+	if s:mon >= 12
+		let s:mon = 1
+		let s:year += 1
+	else
+		let s:mon += 1
+	endif
+	exe s:winNr['main'] . "wincmd w"
+	cal s:SetWinWidth()
+	let s:taskArray = []
+	cal s:ReadTasks(s:mon, s:year) 
+	silent cal s:Show(s:day, s:mon, s:year)
+endf
+
+func! viske#movePrevMonth()
+	cal s:SaveTasks()
+	if s:mon <= 1
+		let s:mon = 12
+		let s:year -= 1
+	else
+		let s:mon -= 1
+	endif
+	exe s:winNr['main'] . "wincmd w"
+	cal s:SetWinWidth()
+	let s:taskArray = []
+	cal s:ReadTasks(s:mon, s:year) 
+	silent cal s:Show(s:day, s:mon, s:year)
+endf
 
 func! s:VMove(direction) "{{{
 	let scroll_up = 0
@@ -860,6 +896,9 @@ func! s:ScheIncTime(flg) "{{{
 					\ '\d\{1,2}:\d\d\s*-\s*\(\d\{1,2}:\d\d\).*', '\1', '')
 	endif
 	let time = s:TimeInc(time, a:flg, 15) 
+	if empty(time)
+		return
+	endif
 	if s:VidemScheTimeFocus == 0
 		call setline(1, substitute(line, '\d\{1,2}:\d\d', time, ''))
 	else
@@ -1064,7 +1103,7 @@ endf "}}}
 func! s:TimeInc(time, flg, val) "{{{
 let hm = split(a:time, ':')
 	if len(hm) != 2
-		return
+		return ""
 	endif
 	let hour = str2nr(hm[0])
 	let min  = str2nr(hm[1])
@@ -1083,7 +1122,7 @@ let hm = split(a:time, ':')
 		let min += 60
 	endwhile
 	if min >= 60 || min < 0 || hour >= 24 || hour < 0
-		retu a:time
+		retu substitute(a:time, '^\s\+', '','')
 	endif
 	if min < 10
 		let hm[1] = "0" . min
@@ -1178,11 +1217,22 @@ func! s:TodoFlagChange(flg) "{{{
 	exe s:winNr['main'] . "wincmd w"
 endf "}}}
 
-func! s:FocusCal() "{{{
+func! viske#focusCalendar() 
 	if s:winNr['cal'] > 0
 		exe s:winNr['cal'] . "wincmd w"
 	endif
-endf "}}}
+endf 
+
+func! viske#focusToggle() 
+	if s:winNr['cal'] <= 0 || s:winNr['main'] <= 0
+		return
+	endif
+	if winnr() == s:winNr['main']
+		exe s:winNr['cal'] . "wincmd w"
+	else
+		exe s:winNr['main'] . "wincmd w"
+	endif
+endf 
 
 func! viske#selectCal(day, mon, year) "{{{
 	cal s:SaveTasks()
@@ -1210,7 +1260,7 @@ func s:WebFuncGet() "{{{
 	if !exists("g:viskeSyncNoConfirm")
 		let confret = confirm("Download from " . s:webSyncName ."?", "&Yes\n&No", 1)
 		if confret > 1
-			let g:viskeSyncReadOnly = 1
+			let g:ViskeSyncReadOnly = 1
 			retu s:taskArray
 		endif
 	endif
@@ -1218,7 +1268,7 @@ func s:WebFuncGet() "{{{
 endf "}}}
 
 func s:webFuncSet(deltasks) "{{{
-	if exists("g:viskeSyncReadOnly") || !exists("s:WebFuncSet")
+	if exists("g:ViskeSyncReadOnly") || !exists("s:WebFuncSet")
 		retu
 	endif
 	if !exists("g:viskeSyncNoConfirm")
@@ -1255,10 +1305,11 @@ func! viske#RtimeToDtime(str) "{{{
 endf "}}}
 
 func! s:ScheTest()
-	echo s:taskArray
+	"echo s:taskArray
 	"echo s:TimeLineSelectedColor
 	"echo s:barLookup
 	"echo s:deletedTasks
+	echo "Year:". s:year .", Mon:". s:mon
 	cal getchar()
 endf
 

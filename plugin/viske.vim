@@ -33,6 +33,10 @@ let s:cpo_save = &cpo
 set cpo&vim
 
 command! -nargs=0 Viske  :cal viske#start()
+command! -nargs=0 ViskeNextMonth  :cal viske#moveNextMonth()
+command! -nargs=0 ViskePrevMonth  :cal viske#movePrevMonth()
 
 let &cpo = s:cpo_save
 unlet s:cpo_save
+
+" vim: foldmethod=marker
